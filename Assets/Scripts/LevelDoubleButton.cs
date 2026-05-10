@@ -1,13 +1,18 @@
 using UnityEngine;
 using Photon.Pun;
 
-// Двойная кнопка: дверь открыта только пока оба игрока стоят
+// Двойная кнопка: дверь открыта, пока оба игрока на ней стоят.
+// Если включён latchOpen — после первого совместного нажатия дверь
+// остаётся открытой навсегда (нужно для уровней, где после нажатия
+// игроки должны сойти с кнопки и пройти в дверь).
 [RequireComponent(typeof(PhotonView))]
 public class LevelDoubleButton : MonoBehaviourPun
 {
     public GameObject linkedDoor;
+    public bool latchOpen = false;
     private bool fireOnButton = false;
     private bool waterOnButton = false;
+    private bool latched = false;
 
     void OnTriggerEnter2D(Collider2D other)
     {
@@ -40,6 +45,8 @@ public class LevelDoubleButton : MonoBehaviourPun
     void UpdateDoor()
     {
         if (linkedDoor == null) return;
-        linkedDoor.SetActive(!(fireOnButton && waterOnButton));
+        if (latchOpen && fireOnButton && waterOnButton) latched = true;
+        bool open = (fireOnButton && waterOnButton) || latched;
+        linkedDoor.SetActive(!open);
     }
 }

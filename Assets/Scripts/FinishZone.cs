@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Photon.Pun;
@@ -41,6 +42,13 @@ public class FinishZone : MonoBehaviourPun
     void TryLoadNext()
     {
         if (!fireArrived || !waterArrived) return;
+
+        // Аналитика: уровень пройден
+        AnalyticsManager.LogEvent("level_complete", new Dictionary<string, object> {
+            { "level_name", SceneManager.GetActiveScene().name },
+            { "next_scene", nextSceneName }
+        });
+
         // Только мастер-клиент вызывает переход — остальные подтянутся автоматически
         if (PhotonNetwork.IsMasterClient)
         {
