@@ -8,8 +8,10 @@ using Photon.Pun;
 public class FinishZone : MonoBehaviourPun
 {
     public string nextSceneName = "Win";
+    public AudioClip winSound; // звук победы (опционально)
     private bool fireArrived = false;
     private bool waterArrived = false;
+    private bool soundPlayed = false;
 
     void OnTriggerEnter2D(Collider2D other)
     {
@@ -42,6 +44,12 @@ public class FinishZone : MonoBehaviourPun
     void TryLoadNext()
     {
         if (!fireArrived || !waterArrived) return;
+        if (soundPlayed) return; // защита от повторного срабатывания
+        soundPlayed = true;
+
+        // Звук победы — играем локально на этом клиенте (RPC уже на всех привёл сюда)
+        if (winSound != null)
+            AudioSource.PlayClipAtPoint(winSound, transform.position);
 
         // Аналитика: уровень пройден
         AnalyticsManager.LogEvent("level_complete", new Dictionary<string, object> {
@@ -49,10 +57,18 @@ public class FinishZone : MonoBehaviourPun
             { "next_scene", nextSceneName }
         });
 
-        // Только мастер-клиент вызывает переход — остальные подтянутся автоматически
+        // Только мастер-клиент вызывает переход. Перед сменой сцены ждём,
+        // чтобы успел доиграть звук победы — иначе сцена выгрузится мгновенно
+        // и временный AudioSource из PlayClipAtPoint умрёт с ней.
         if (PhotonNetwork.IsMasterClient)
         {
-            PhotonNetwork.LoadLevel(nextSceneName);
+            StartCoroutine(LoadNextAfterDelay(1.5f));
         }
+    }
+
+    private System.Collections.IEnumerator LoadNextAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        PhotonNetwork.LoadLevel(nextSceneName);
     }
 }

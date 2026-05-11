@@ -8,6 +8,8 @@ public class LevelButton : MonoBehaviourPun
 {
     public GameObject linkedDoor;
     public string activatorTag;    // "FirePlayer" или "WaterPlayer"
+    public AudioClip buttonSound;  // звук нажатия кнопки (опционально)
+    public AudioClip doorSound;    // звук открытия двери (опционально)
     private bool isPressed = false;
 
     void OnTriggerEnter2D(Collider2D other)
@@ -28,5 +30,10 @@ public class LevelButton : MonoBehaviourPun
     {
         isPressed = true;
         if (linkedDoor != null) linkedDoor.SetActive(false);
+
+        if (buttonSound != null)
+            AudioSource.PlayClipAtPoint(buttonSound, transform.position);
+        if (doorSound != null && linkedDoor != null)
+            AudioSource.PlayClipAtPoint(doorSound, linkedDoor.transform.position);
     }
 }

@@ -10,9 +10,12 @@ public class LevelDoubleButton : MonoBehaviourPun
 {
     public GameObject linkedDoor;
     public bool latchOpen = false;
+    public AudioClip buttonSound; // звук нажатия (опционально)
+    public AudioClip doorSound;   // звук открытия двери (опционально)
     private bool fireOnButton = false;
     private bool waterOnButton = false;
     private bool latched = false;
+    private bool wasOpen = false; // отслеживаем переход закрыто→открыто, чтобы не спамить звук двери
 
     void OnTriggerEnter2D(Collider2D other)
     {
@@ -37,10 +40,24 @@ public class LevelDoubleButton : MonoBehaviourPun
     }
 
     [PunRPC]
-    void SetFireOn(bool v) { fireOnButton = v; UpdateDoor(); }
+    void SetFireOn(bool v)
+    {
+        bool changed = fireOnButton != v;
+        fireOnButton = v;
+        if (changed && v && buttonSound != null)
+            AudioSource.PlayClipAtPoint(buttonSound, transform.position);
+        UpdateDoor();
+    }
 
     [PunRPC]
-    void SetWaterOn(bool v) { waterOnButton = v; UpdateDoor(); }
+    void SetWaterOn(bool v)
+    {
+        bool changed = waterOnButton != v;
+        waterOnButton = v;
+        if (changed && v && buttonSound != null)
+            AudioSource.PlayClipAtPoint(buttonSound, transform.position);
+        UpdateDoor();
+    }
 
     void UpdateDoor()
     {
@@ -48,5 +65,9 @@ public class LevelDoubleButton : MonoBehaviourPun
         if (latchOpen && fireOnButton && waterOnButton) latched = true;
         bool open = (fireOnButton && waterOnButton) || latched;
         linkedDoor.SetActive(!open);
+
+        if (open && !wasOpen && doorSound != null)
+            AudioSource.PlayClipAtPoint(doorSound, linkedDoor.transform.position);
+        wasOpen = open;
     }
 }

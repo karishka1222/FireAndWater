@@ -14,6 +14,7 @@ public class DangerZone : MonoBehaviourPun
 {
     public string killTag;          // основной тег жертвы
     public string killTagSecondary; // опционально: второй тег (если зона убивает двоих, например пила)
+    public AudioClip deathSound;    // звук смерти (опционально)
 
     // Защита от повторных смертей подряд (несколько коллайдеров / тайлов рядом)
     private float lastDeathTime = -10f;
@@ -41,6 +42,9 @@ public class DangerZone : MonoBehaviourPun
 
         lastDeathTime = Time.time;
 
+        // Звук смерти — играем у всех клиентов через RPC
+        photonView.RPC(nameof(PlayDeathSoundRPC), RpcTarget.All);
+
         // Тег убитого игрока — берём с самого Collider, а не из killTag,
         // потому что в случае двух тегов мы заранее не знаем кто умер.
         string victimTag = other.tag;
@@ -67,6 +71,13 @@ public class DangerZone : MonoBehaviourPun
         {
             Debug.LogWarning("[DangerZone] GameManager.Instance == null — нет синглтона в сцене?");
         }
+    }
+
+    [PunRPC]
+    void PlayDeathSoundRPC()
+    {
+        if (deathSound != null)
+            AudioSource.PlayClipAtPoint(deathSound, transform.position);
     }
 
     // Надёжный телепорт: синхронизируем и Transform, и Rigidbody2D

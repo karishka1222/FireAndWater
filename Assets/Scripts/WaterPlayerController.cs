@@ -5,7 +5,9 @@ public class WaterPlayerController : MonoBehaviourPun
 {
     public float moveSpeed = 5f;
     public float jumpForce = 8f;
+    public AudioClip jumpSound; // звук прыжка (опционально)
     private Rigidbody2D rb;
+    private Animator animator;
     private bool isGrounded = false;
 
     // Сглаженный ввод — повторяет поведение Input.GetAxis у огня (плавное нарастание).
@@ -17,6 +19,7 @@ public class WaterPlayerController : MonoBehaviourPun
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
     }
 
     void Update()
@@ -37,7 +40,30 @@ public class WaterPlayerController : MonoBehaviourPun
         if (Input.GetKeyDown(KeyCode.I) && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            photonView.RPC(nameof(PlayJumpSoundRPC), RpcTarget.All);
         }
+
+        // Параметры аниматора — синхронизируются на удалённых через PhotonAnimatorView
+        if (animator != null)
+        {
+            animator.SetBool("isRunning", Mathf.Abs(rb.linearVelocity.x) > 0.1f);
+            animator.SetBool("isGrounded", isGrounded);
+            animator.SetFloat("ySpeed", rb.linearVelocity.y);
+        }
+
+        // Поворот персонажа через localScale — Photon синхронизирует scale через PhotonTransformView
+        float vx = rb.linearVelocity.x;
+        Vector3 s = transform.localScale;
+        float absX = Mathf.Abs(s.x);
+        if (vx > 0.1f) transform.localScale = new Vector3(absX, s.y, s.z);
+        else if (vx < -0.1f) transform.localScale = new Vector3(-absX, s.y, s.z);
+    }
+
+    [PunRPC]
+    void PlayJumpSoundRPC()
+    {
+        if (jumpSound != null)
+            AudioSource.PlayClipAtPoint(jumpSound, transform.position);
     }
 
     void OnCollisionEnter2D(Collision2D col)
